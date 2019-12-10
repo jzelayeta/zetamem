@@ -1,4 +1,7 @@
-import Types.Page
+import algorithms.fifo.FIFO
+import algorithms.lru.{LRU, LruQueue}
+import algorithms.otimal.Optimal
+import hardware.{MemoryManagementUnit, PhysicalMemory, TranslationLookAsideBuffer}
 import org.scalatest.{Matchers, WordSpecLike}
 
 class PageAllocationSpec extends WordSpecLike with Matchers {
@@ -48,22 +51,21 @@ class PageAllocationSpec extends WordSpecLike with Matchers {
 
   "LRU Cache" should {
     "receive elements" in {
-      val lruQueue = LRUQueue(5)
+      val lruQueue = LruQueue(5)
 
-//      lruQueue + 1
-//
-//      lruQueue.headOption shouldBe Some(1)
-//      lruQueue.lastRecentlyUsed shouldBe Some(1)
+      lruQueue + (1 -> 0)
+
+      lruQueue.headOption shouldBe Some(1 -> 0)
+      lruQueue.lastRecentlyUsed shouldBe Some(1 -> 0)
     }
 
-    "add and preseve ordering by time used" in {
-      val lruQueue = LRUQueue(3)
-//      lruQueue + 1
-//      lruQueue + 2
-//      lruQueue + 3
-//      lruQueue + 4
-//
-//      lruQueue.lastRecentlyUsed shouldBe Some(2)
+    "add and preseve order" in {
+      val lruQueue = LruQueue(3)
+      lruQueue + (1 -> 0)
+      lruQueue + (2 -> 1)
+      lruQueue + (3 -> 2)
+
+      lruQueue.lastRecentlyUsed shouldBe Some(1 -> 0)
     }
   }
 
@@ -83,47 +85,74 @@ class PageAllocationSpec extends WordSpecLike with Matchers {
     //THIS IS MMU BEHAVIOUR
     "check if physical memory has free frames" in {
       val physicalMemory = PhysicalMemory(3)
-      val replacementAlgorithm = ReplacementAlgorithm()
-      replacementAlgorithm.memoryHasFreeFrames(physicalMemory) shouldBe true
+      val fifo = FIFO()
+      fifo.memoryHasFreeFrames(physicalMemory) shouldBe true
     }
 
     //THIS IS MMU BEHAVIOUR
     "check if physical memory contains a page" in {
-      val physicalMemory = PhysicalMemory(numberOfFrames = 3) + (frame = 0 , page = 1)
-      val replacementAlgorithm = ReplacementAlgorithm()
-      replacementAlgorithm.isPageCurrentlyAllocated(physicalMemory, 1) shouldBe true
+      val physicalMemory = PhysicalMemory(numberOfFrames = 3)
+      val tlb = TranslationLookAsideBuffer()
+      val mmu = MemoryManagementUnit(physicalMemory, tlb)
+
     }
 
     "handle a page reference chain with FIFO Replacement Algorithm with exactly the same number of avaiable frames" in {
       val physicalMemory = PhysicalMemory(numberOfFrames = 3)
-      val replacementAlgorithm = ReplacementAlgorithm()
+      val fifo = FIFO()
       val pageReferenceChain = List(2,3,5)
-      val memoryState = replacementAlgorithm.handle(physicalMemory, pageReferenceChain)
+      val memoryState = fifo.handle(physicalMemory, pageReferenceChain)
       memoryState.frames shouldBe Map(0 -> Some(2), 1 -> Some(3), 2 -> Some(5))
     }
 
     "handle a larger page chain refererence with FIFO Replacement Algorithm" in {
       val physicalMemory = PhysicalMemory(numberOfFrames = 3)
-      val replacementAlgorithm = ReplacementAlgorithm()
-      val pageReferenceChain = List(2,3,5,3,5,1,4,2)
-      val memoryState = replacementAlgorithm.handle(physicalMemory, pageReferenceChain)
-      memoryState.frames shouldBe Map(0 -> Some(1), 1 -> Some(4), 2 -> Some(2))
+      val fifo = FIFO()
+      val pageReferenceChain = List(2,3,2,1,5,2,4,5,3,2,5,2)
+      val memoryState = fifo.handle(physicalMemory, pageReferenceChain)
+      memoryState.frames shouldBe Map(0 -> Some(3), 1 -> Some(5), 2 -> Some(2))
     }
 
     "handle page references with LRU" in {
       val physicalMemory = PhysicalMemory(numberOfFrames = 3)
-      val replacementAlgorithm = LruReplacementAlgorithm()
+      val lru = LRU()
       val pageReferenceChain = List(2,3,5,2,3,1,3,5,2,4)
-      val memoryState = replacementAlgorithm.handle(physicalMemory, pageReferenceChain)
+      val memoryState = lru.handle(physicalMemory, pageReferenceChain)
       memoryState.frames shouldBe Map(0 -> Some(5), 1 -> Some(4), 2 -> Some(2))
     }
 
     "handle other LRU" in {
       val physicalMemory = PhysicalMemory(numberOfFrames = 3)
-      val replacementAlgorithm = LruReplacementAlgorithm()
+      val lru = LRU()
       val pageReferenceChain = List(2,3,2,1,5,2,4,5,3,2,5,2)
-      val memoryState = replacementAlgorithm.handle(physicalMemory, pageReferenceChain)
+      val memoryState = lru.handle(physicalMemory, pageReferenceChain)
       memoryState.frames shouldBe Map(0 -> Some(3), 1 -> Some(5), 2 -> Some(2))
+    }
+
+    "handle optimum" in {
+      val physicalMemory = PhysicalMemory(numberOfFrames = 3)
+      val optimal = Optimal()
+      val pageReferenceChain = List(2,3,2)
+      val memoryState = optimal.handle(physicalMemory, pageReferenceChain)
+      memoryState.frames shouldBe Map(0 -> Some(2), 1 -> Some(3), 2 -> None)
+    }
+
+    "handle optimum1" in {
+      val physicalMemory = PhysicalMemory(numberOfFrames = 3)
+      val optimal = Optimal()
+      val pageReferenceChain = List(2,3,2,1,5)
+      val memoryState = optimal.handle(physicalMemory, pageReferenceChain)
+      memoryState.frames shouldBe Map(0 -> Some(2), 1 -> Some(5), 2 -> Some(1))
+    }
+
+    "handle optimum2" in {
+
+      val row = "╔══╗\n║  ║\n╠══╣\n║  ║\n╠══╣\n║  ║\n╠══╣\n║  ║\n╚══╝"
+      val physicalMemory = PhysicalMemory(numberOfFrames = 3)
+      val optimal = Optimal()
+      val pageReferenceChain = List(2,3,2,1,5,2,4,5,3,2,5,2)
+      val memoryState = optimal.handle(physicalMemory, pageReferenceChain)
+      memoryState.frames shouldBe Map(0 -> Some(2), 1 -> Some(3), 2 -> Some(5))
     }
   }
 }
