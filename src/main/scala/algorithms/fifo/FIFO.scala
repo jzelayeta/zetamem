@@ -12,7 +12,7 @@ case class FIFO() extends PageReplacementAlgorithm {
     val tlb = TranslationLookAsideBuffer()
     val pageTable = PageTable()
     def handle(pageReferenceChain: List[Page], physicalMemory: PhysicalMemory, frames: Iterator[Frame]): PhysicalMemory = pageReferenceChain match {
-      case demandedPage :: nextPages if isPageCurrentlyAllocated(tlb, pageTable, demandedPage) =>
+      case demandedPage :: nextPages if isPageCurrentlyAllocated(demandedPage)(tlb, physicalMemory) =>
         handle(nextPages, physicalMemory, frames)
       case demandedPage :: nextPages =>
         val frame = frames.next()

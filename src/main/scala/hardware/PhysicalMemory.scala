@@ -1,5 +1,6 @@
 package hardware
 import Types.{Frame, Page}
+import software.PageTable
 
 import scala.language.postfixOps
 
@@ -11,7 +12,8 @@ object PhysicalMemory {
   )
 }
 
-case class PhysicalMemory(frames: Map[Frame, Option[Page]] = Map.empty) {
+case class PhysicalMemory(frames: Map[Frame, Option[Page]] = Map.empty, pageTable: PageTable = PageTable()) {
+
   def size = frames.size
 
   def getPage(frame: Frame) = frames.get(frame).flatten
@@ -20,7 +22,8 @@ case class PhysicalMemory(frames: Map[Frame, Option[Page]] = Map.empty) {
   def +(frame: Frame, page: Page): PhysicalMemory = {
     println(s"Added Paage $page on Frame $frame")
     this.copy(
-      frames + (frame -> Some(page))
+      frames = frames + (frame -> Some(page)),
+      pageTable = pageTable + (page -> frame)
     )
   }
 

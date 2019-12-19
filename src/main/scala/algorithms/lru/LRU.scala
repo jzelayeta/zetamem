@@ -15,7 +15,7 @@ case class LRU() extends PageReplacementAlgorithm {
     val pageTable: PageTable = PageTable()
 
     def handle(pageReferenceChain: List[Page], physicalMemory: PhysicalMemory, frames: Iterator[Frame], lastRecentlyUsed: LruQueue): PhysicalMemory = pageReferenceChain match {
-      case demandedPage :: nextPages if  isPageCurrentlyAllocated(tlb, pageTable, demandedPage) =>
+      case demandedPage :: nextPages if  isPageCurrentlyAllocated(demandedPage)(tlb, physicalMemory) =>
         lruQueue + (demandedPage -> tlb(demandedPage))
         handle(nextPages, physicalMemory, frames, lastRecentlyUsed)
       case demandedPage :: nextPages if memoryHasFreeFrames(physicalMemory) =>

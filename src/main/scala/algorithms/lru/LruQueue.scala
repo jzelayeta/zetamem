@@ -1,7 +1,4 @@
 package algorithms.lru
-
-
-
 import Types.{Frame, Page}
 
 import scala.collection.mutable
@@ -13,16 +10,16 @@ case class LruQueue(maxSize: Int) {
 
   def +(e: (Page, Frame)) = allocated.get(e).map{ index =>
     elements.remove(index)
-    elements.addOne(e)
-    elements.zipWithIndex.foldLeft(allocated){(map, e) => map.addOne(e)}
+    elements.+=(e)
+    elements.zipWithIndex.foldLeft(allocated){(map, e) => map.+=(e)}
     println(elements)
   }.getOrElse({
     if(elements.size == maxSize ) {
       lastRecentlyUsed map(-)
-      elements.zipWithIndex.foldLeft(allocated){(map, e) => map.addOne(e)}
+      elements.zipWithIndex.foldLeft(allocated){(map, e) => map.+=(e)}
     }
-    allocated.addOne(e -> elements.size)
-    elements.addOne(e)
+    allocated.+=(e -> elements.size)
+    elements.+=(e)
   })
 
   def -(e: (Page, Frame)): Option[(Page, Frame)] = allocated.remove(e).map{elements.remove}

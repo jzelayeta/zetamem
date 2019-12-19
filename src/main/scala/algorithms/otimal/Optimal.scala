@@ -6,23 +6,22 @@ import hardware.{PhysicalMemory, TranslationLookAsideBuffer}
 import software.PageTable
 
 case class Optimal() extends PageReplacementAlgorithm {
-  val tlb = TranslationLookAsideBuffer()
+  implicit val tlb = TranslationLookAsideBuffer()
   val pageTable = PageTable()
   override def handle(physicalMemory: PhysicalMemory, pageReferenceChain: List[Page]): PhysicalMemory = pageReferenceChain match {
-    case demandedPage :: nextPages if isPageCurrentlyAllocated(tlb, pageTable, demandedPage) =>
-      tlb update demandedPage
+    case demandedPage :: nextPages if isPageCurrentlyAllocated(demandedPage)(tlb, physicalMemory) =>
       handle(physicalMemory, nextPages)
     case demandedPage :: nextPages if memoryHasFreeFrames(physicalMemory) =>
-      tlb + (demandedPage -> tlb.size)
-      handle(physicalMemory + (tlb(demandedPage) -> demandedPage), nextPages)
+      val frame = tlb.size
+      tlb + (demandedPage -> frame)
+      handle(physicalMemory + (frame -> demandedPage), nextPages)
     case demandedPage :: nextPages =>
-      nextPages.view.reverse.map(page => tlb.get(page).map(_ => page)).find(_.isDefined).flatten match {
-        case Some(page) =>
-          val victimFrame = tlb(page)
+      nextPages.view.reverse.map(page => tlb.get(page).map(frame => page -> frame)).find(_.isDefined).flatten match {
+        case Some((page, frame)) => //TLB hit
           tlb remove page
-          tlb + (demandedPage -> victimFrame)
-          handle(physicalMemory + (victimFrame -> demandedPage), nextPages)
-        case _  =>
+          tlb + (demandedPage -> frame)
+          handle(physicalMemory + (frame -> demandedPage), nextPages)
+        case _  => // TLB miss, page is not allocated
           val (page, frame) = tlb.head
           tlb remove page
           tlb + (frame, demandedPage)

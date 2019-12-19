@@ -14,13 +14,13 @@ class PageAllocationSpec extends WordSpecLike with Matchers {
 
     "add entries to the table" in {
       val TLB = TranslationLookAsideBuffer()
-      TLB addOne 3 -> 2
+      TLB += 3 -> 2
       TLB(3) shouldBe 2
     }
 
     "remove entries to the table" in {
       val TLB = TranslationLookAsideBuffer()
-      TLB addOne 3 -> 2
+      TLB += 3 -> 2
       TLB remove 3
       TLB shouldBe empty
     }
@@ -30,7 +30,7 @@ class PageAllocationSpec extends WordSpecLike with Matchers {
     "check if TLB contains page" in {
       val physicalMemory = PhysicalMemory(numberOfFrames = 3)
       val TLB = TranslationLookAsideBuffer()
-      TLB addOne 3 -> 2
+      TLB += 3 -> 2
       val MMU = MemoryManagementUnit(physicalMemory, TLB)
       MMU.doesTLBContainsPage(3) shouldBe true
     }
@@ -38,7 +38,7 @@ class PageAllocationSpec extends WordSpecLike with Matchers {
     "get frame for a page in TLB" in {
       val physicalMemory = PhysicalMemory(numberOfFrames = 3)
       val TLB = TranslationLookAsideBuffer()
-      TLB addOne 3 -> 2
+      TLB += 3 -> 2
       val MMU = MemoryManagementUnit(physicalMemory, TLB)
       MMU.lookFrameInTLB(page = 3) shouldBe Some(2)
     }
@@ -142,17 +142,7 @@ class PageAllocationSpec extends WordSpecLike with Matchers {
       val optimal = Optimal()
       val pageReferenceChain = List(2,3,2,1,5)
       val memoryState = optimal.handle(physicalMemory, pageReferenceChain)
-      memoryState.frames shouldBe Map(0 -> Some(2), 1 -> Some(5), 2 -> Some(1))
-    }
-
-    "handle optimum2" in {
-
-      val row = "╔══╗\n║  ║\n╠══╣\n║  ║\n╠══╣\n║  ║\n╠══╣\n║  ║\n╚══╝"
-      val physicalMemory = PhysicalMemory(numberOfFrames = 3)
-      val optimal = Optimal()
-      val pageReferenceChain = List(2,3,2,1,5,2,4,5,3,2,5,2)
-      val memoryState = optimal.handle(physicalMemory, pageReferenceChain)
-      memoryState.frames shouldBe Map(0 -> Some(2), 1 -> Some(3), 2 -> Some(5))
+      memoryState.frames shouldBe Map(0 -> Some(5), 1 -> Some(3), 2 -> Some(1))
     }
   }
 }
